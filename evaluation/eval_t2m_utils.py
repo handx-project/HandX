@@ -340,8 +340,6 @@ def calculate_diversity(activation, diversity_times, seed=42, use_fixed_indices=
 
             # Check multiple possible locations
             possible_paths = [
-                Path('/u/yzhang62/BihandMotionAutoAnno/diversity_fixed_indices.npz'),
-                Path('/u/yzhang62/BihandMotionAutoAnno_compile/diversity_fixed_indices.npz'),
                 Path(os.getcwd()) / 'diversity_fixed_indices.npz',
             ]
 
@@ -451,7 +449,7 @@ def load_object_sdf_data( dataset_name, obj_name,version):
     #     sdf_json_path = os.path.join(data_folder, object_name+".json")
     # else:
     object_name = obj_name
-    base = '/projects/bbsg/ziyin/data'
+    base = ''
     data_folder = os.path.join(base,dataset_name, 'object_sdf') 
     if version  ==9:
         sdf_npy_path = os.path.join(data_folder, object_name+"_can.npy")

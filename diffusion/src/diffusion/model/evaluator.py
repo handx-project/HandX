@@ -56,7 +56,7 @@ class Evaluator(object):
         )
 
         # Updated checkpoint path: using self-trained TMR model
-        checkpoint_path = "/u/yzhang62/MyHandTMR/outputs/tmr_snap_snapmotion/lightning_logs/t1kl1o49/checkpoints/best-epoch=193.ckpt"
+        checkpoint_path = "your_ckpt"
 
         full_checkpoint:OrderedDict = torch.load(checkpoint_path, map_location='cpu')['state_dict']
         checkpoint = OrderedDict()
@@ -81,7 +81,7 @@ class Evaluator(object):
             nfeats=768  # DistilBERT embedding size
         )
 
-        checkpoint_path = "/u/yzhang62/MyHandTMR/outputs/tmr_snap_snapmotion/lightning_logs/t1kl1o49/checkpoints/best-epoch=193.ckpt"
+        checkpoint_path = "your_ckpt"
         full_checkpoint = torch.load(checkpoint_path, map_location='cpu')['state_dict']
         checkpoint = OrderedDict()
         for key, value in full_checkpoint.items():

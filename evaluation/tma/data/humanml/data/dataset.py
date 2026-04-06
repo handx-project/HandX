@@ -20,26 +20,18 @@ from torch.utils.data import Dataset
 import torch
 from tqdm import tqdm
 def _is_npy(buf: bytes) -> bool:
-    # .npy 的魔术头是 b'\x93NUMPY'
     return len(buf) >= 6 and buf[:6] == b"\x93NUMPY"
 
 def _load_value(buf: bytes):
-    """
-    尝试把 LMDB 的 value 解析为 numpy 或 JSON。
-    - npy: 返回 np.ndarray
-    - json: 返回任意 python 对象（list/str/int/float/dict）
-    """
+ 
     if _is_npy(buf):
         return np.load(io.BytesIO(buf), allow_pickle=False)
-    # 否则按 JSON 解码
     return json.loads(buf.decode("utf-8"))
-# import spacy
 def collate_fn(batch):
     batch.sort(key=lambda x: x[3], reverse=True)
     return default_collate(batch)
 
 
-"""For use of training text-2-motion generative model"""
 
 
 class Text2MotionDataset(data.Dataset):
@@ -109,7 +101,6 @@ class Text2MotionDataset(data.Dataset):
                                 print(line_split)
                                 print(line_split[2], line_split[3], f_tag,
                                       to_tag, name)
-                                # break
 
                 if flag:
                     data_dict[name] = {
@@ -127,25 +118,18 @@ class Text2MotionDataset(data.Dataset):
             *sorted(zip(new_name_list, length_list), key=lambda x: x[1]))
 
         if opt.is_train:
-            # root_rot_velocity (B, seq_len, 1)
             std[0:1] = std[0:1] / opt.feat_bias
-            # root_linear_velocity (B, seq_len, 2)
             std[1:3] = std[1:3] / opt.feat_bias
-            # root_y (B, seq_len, 1)
             std[3:4] = std[3:4] / opt.feat_bias
-            # ric_data (B, seq_len, (joint_num - 1)*3)
             std[4:4 + (joints_num - 1) * 3] = std[4:4 +
                                                   (joints_num - 1) * 3] / 1.0
-            # rot_data (B, seq_len, (joint_num - 1)*6)
             std[4 + (joints_num - 1) * 3:4 +
                 (joints_num - 1) * 9] = (std[4 + (joints_num - 1) * 3:4 +
                                              (joints_num - 1) * 9] / 1.0)
-            # local_velocity (B, seq_len, joint_num*3)
             std[4 + (joints_num - 1) * 9:4 + (joints_num - 1) * 9 +
                 joints_num * 3] = (std[4 + (joints_num - 1) * 9:4 +
                                        (joints_num - 1) * 9 + joints_num * 3] /
                                    1.0)
-            # foot contact (B, seq_len, 4)
             std[4 + (joints_num - 1) * 9 + joints_num * 3:] = (
                 std[4 +
                     (joints_num - 1) * 9 + joints_num * 3:] / opt.feat_bias)
@@ -179,18 +163,15 @@ class Text2MotionDataset(data.Dataset):
         data = self.data_dict[self.name_list[idx]]
         motion, m_length, text_list = data["motion"], data["length"], data[
             "text"]
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption, tokens = text_data["caption"], text_data["tokens"]
 
         if len(tokens) < self.opt.max_text_len:
-            # pad with "unk"
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
             tokens = tokens + ["unk/OTHER"
                                ] * (self.opt.max_text_len + 2 - sent_len)
         else:
-            # crop
             tokens = tokens[:self.opt.max_text_len]
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
@@ -274,9 +255,7 @@ class UniMocapDataset(data.Dataset):
         self.max_length = 20
         self.pointer = 0
         self.max_motion_length = max_motion_length
-        # min_motion_len = 40 if dataset_name =='t2m' else 24
 
-        # text_source = "only_text_token"
         self.text_source = text_source
         
         self.min_motion_length = min_motion_length
@@ -386,11 +365,9 @@ class UniMocapDataset(data.Dataset):
                                 new_name_list.append(new_name)
                                 length_list.append(len(n_motion))
                             except:
-                                # None
                                 print(line_split)
                                 print(line_split[2], line_split[3], f_tag,
                                         to_tag, name)
-                                # break
 
                 if flag:
                     data_dict[name] = {
@@ -400,9 +377,7 @@ class UniMocapDataset(data.Dataset):
                     }
                     new_name_list.append(name)
                     length_list.append(len(motion))
-                    # print(count)
                     count += 1
-                    # print(name)
             except:
                 miss_count += 1
                 pass
@@ -424,8 +399,7 @@ class UniMocapDataset(data.Dataset):
         self.nfeats = motion.shape[1]
         self.name_list = name_list
         self.reset_max_len(self.max_length)
-        # train 24546
-        # test 4648
+
         
         print('train len', len(data_dict))
         print('test len', len(data_dict))
@@ -452,30 +426,25 @@ class UniMocapDataset(data.Dataset):
         motion, m_length, text_list = data["motion"], data["length"], data[
             "text"]
 
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption, tokens = text_data["caption"], text_data["tokens"]
 
         if self.text_source == 'token':
             if len(tokens) < self.max_text_len:
-                # pad with "unk"
                 tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
                 sent_len = len(tokens)
                 tokens = tokens + ["unk/OTHER"] * (self.max_text_len + 2 - sent_len)
             else:
-                # crop
                 tokens = tokens[:self.max_text_len]
                 tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
                 sent_len = len(tokens)
         elif self.text_source == 'only_text_token' or self.text_source == 'caption':
 
             if len(tokens) < self.max_text_len:
-                # pad with "unk"
                 tokens = ['sos'] + tokens + ['eos']
                 sent_len = len(tokens)
                 tokens = tokens + ['unk'] * (self.max_text_len + 2 - sent_len)
             else:
-                # crop
                 tokens = tokens[:self.max_text_len]
                 tokens = ['sos'] + tokens + ['eos']
                 sent_len = len(tokens)
@@ -497,7 +466,6 @@ class UniMocapDataset(data.Dataset):
                 word_embeddings.append(word_emb[None, :])
             word_embeddings = np.concatenate(word_embeddings, axis=0)
 
-        # Crop the motions in to times of 4, and introduce small variations
         if self.unit_length < 10:
             coin2 = np.random.choice(["single", "single", "double"])
         else:
@@ -512,7 +480,6 @@ class UniMocapDataset(data.Dataset):
         "Z Normalization"
         motion = (motion - self.mean) / (self.std + 1e-7)
 
-        # debug check nan
         if np.any(np.isnan(motion)):
             print(retrieval_name, "nan in motion")
             motion = np.random.rand(*(motion.shape))
@@ -528,10 +495,7 @@ class UniMocapDataset(data.Dataset):
             "_".join(tokens),
             retrieval_name
         )
-        # return caption, motion, m_length
 
-
-"""For use of training baseline"""
 
 
 class Text2MotionDatasetBaseline(data.Dataset):
@@ -641,18 +605,15 @@ class Text2MotionDatasetBaseline(data.Dataset):
         data = self.data_dict[self.name_list[idx]]
         motion, m_length, text_list = data["motion"], data["length"], data[
             "text"]
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption, tokens = text_data["caption"], text_data["tokens"]
 
         if len(tokens) < self.opt.max_text_len:
-            # pad with "unk"
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
             tokens = tokens + ["unk/OTHER"
                                ] * (self.opt.max_text_len + 2 - sent_len)
         else:
-            # crop
             tokens = tokens[:self.opt.max_text_len]
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
@@ -692,7 +653,6 @@ class Text2MotionDatasetBaseline(data.Dataset):
         src_motion = (src_motion - self.mean) / self.std
         tgt_motion = (tgt_motion - self.mean) / self.std
 
-        # padding
         if m_length < self.max_motion_length:
             src_motion = np.concatenate(
                 [
@@ -727,31 +687,23 @@ class MotionDatasetV2(data.Dataset):
                 self.lengths.append(motion.shape[0] - opt.window_size)
                 self.data.append(motion)
             except:
-                # Some motion may not exist in KIT dataset
                 pass
 
         self.cumsum = np.cumsum([0] + self.lengths)
 
         if opt.is_train:
-            # root_rot_velocity (B, seq_len, 1)
             std[0:1] = std[0:1] / opt.feat_bias
-            # root_linear_velocity (B, seq_len, 2)
             std[1:3] = std[1:3] / opt.feat_bias
-            # root_y (B, seq_len, 1)
             std[3:4] = std[3:4] / opt.feat_bias
-            # ric_data (B, seq_len, (joint_num - 1)*3)
             std[4:4 + (joints_num - 1) * 3] = std[4:4 +
                                                   (joints_num - 1) * 3] / 1.0
-            # rot_data (B, seq_len, (joint_num - 1)*6)
             std[4 + (joints_num - 1) * 3:4 +
                 (joints_num - 1) * 9] = (std[4 + (joints_num - 1) * 3:4 +
                                              (joints_num - 1) * 9] / 1.0)
-            # local_velocity (B, seq_len, joint_num*3)
             std[4 + (joints_num - 1) * 9:4 + (joints_num - 1) * 9 +
                 joints_num * 3] = (std[4 + (joints_num - 1) * 9:4 +
                                        (joints_num - 1) * 9 + joints_num * 3] /
                                    1.0)
-            # foot contact (B, seq_len, 4)
             std[4 + (joints_num - 1) * 9 + joints_num * 3:] = (
                 std[4 +
                     (joints_num - 1) * 9 + joints_num * 3:] / opt.feat_bias)
@@ -838,13 +790,11 @@ class RawTextDataset(data.Dataset):
         caption, tokens = data["caption"], data["tokens"]
 
         if len(tokens) < self.opt.max_text_len:
-            # pad with "unk"
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
             tokens = tokens + ["unk/OTHER"
                                ] * (self.opt.max_text_len + 2 - sent_len)
         else:
-            # crop
             tokens = tokens[:self.opt.max_text_len]
             tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
             sent_len = len(tokens)
@@ -937,15 +887,12 @@ class TextOnlyDataset(data.Dataset):
         data = self.data_dict[self.name_list[idx]]
         text_list = data["text"]
 
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption, tokens = text_data["caption"], text_data["tokens"]
         return None, None, caption, None, np.array([0
                                                     ]), self.fixed_length, None
-        # fixed_length can be set from outside before sampling
 
 
-# A wrapper class for t2m original dataset for MDM purposes
 class HumanML3D(data.Dataset):
 
     def __init__(self,
@@ -958,11 +905,10 @@ class HumanML3D(data.Dataset):
         self.dataset_name = "t2m"
         self.dataname = "t2m"
 
-        # Configurations of T2M dataset and KIT dataset is almost the same
         abs_base_path = f"."
         dataset_opt_path = pjoin(abs_base_path, datapath)
         device = (
-            None  # torch.device('cuda:4') # This param is not in use in this context
+            None 
         )
         opt = get_opt(dataset_opt_path, device)
         opt.meta_dir = pjoin(abs_base_path, opt.meta_dir)
@@ -976,17 +922,14 @@ class HumanML3D(data.Dataset):
         print("Loading dataset %s ..." % opt.dataset_name)
 
         if mode == "gt":
-            # used by T2M models (including evaluators)
             self.mean = np.load(pjoin(opt.meta_dir, "mean.npy"))
             self.std = np.load(pjoin(opt.meta_dir, "std.npy"))
         elif mode in ["train", "eval", "text_only"]:
-            # used by our models
             self.mean = np.load(pjoin(opt.data_root, "Mean.npy"))
             self.std = np.load(pjoin(opt.data_root, "Std.npy"))
 
         if mode == "eval":
-            # used by T2M models (including evaluators)
-            # this is to translate their norms to ours
+          
             self.mean_for_eval = np.load(pjoin(opt.meta_dir, "mean.npy"))
             self.std_for_eval = np.load(pjoin(opt.meta_dir, "std.npy"))
 
@@ -1000,7 +943,7 @@ class HumanML3D(data.Dataset):
             self.t2m_dataset = Text2MotionDatasetV2(self.opt, self.mean,
                                                     self.std, self.split_file,
                                                     self.w_vectorizer)
-            self.num_actions = 1  # dummy placeholder
+            self.num_actions = 1  
 
     def __getitem__(self, item):
         return self.t2m_dataset.__getitem__(item)
@@ -1009,7 +952,6 @@ class HumanML3D(data.Dataset):
         return self.t2m_dataset.__len__()
 
 
-# A wrapper class for t2m original dataset for MDM purposes
 class KIT(HumanML3D):
 
     def __init__(self,
@@ -1976,18 +1918,9 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
                 names_text_list=f.readlines()
             id_list_part=[['/scratch/bcnt/sirui/dongting/data',DataSet,e.strip()] for e in names_text_list]
             id_list+=id_list_part
-        # if split_datapart in ['train']:
-        #     for DataSet in ["behave" , "grab" , "imhd" , "intercap" , "neuraldome" ,"omomo"]:
-        #         txt_name=os.path.join(split_root,DataSet+'_'+split_datapart+'_aug.txt')
-        #         with open(txt_name,'r') as f:
-        #             names_text_list=f.readlines()
-        #         id_list_part=[['/scratch/bcnt/sirui/dongting/augment_data_new_version/aug_data',DataSet,e.strip()] for e in names_text_list]
-        #         id_list+=id_list_part
+    
         print(len(id_list),'Amount of sequences')
 
-        # with cs.open(split_file, "r") as f:
-        #     for line in f.readlines():
-        #         id_list.append(line.strip())
         self.id_list = id_list
 
         if tiny or debug:
@@ -2020,51 +1953,10 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
             if count > maxdata:
                 break
             try:
-                ## PREVIOUS BPS
-                # motion_h = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "joints.npy"))
-                # if motion_h.shape[0]>400:
-                #     continue
-                # motion_bps = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "bps_time.npy"))
-
-                # motion_rot = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "rot6d_new2.npy"))
-                # #motion=motion_h[:,:77*3]
-                # if motion_h.shape[1]!=52:
-                #     motion_h = motion_h[:,:52]
-                # L = motion_h.shape[0]
-                # # motion_h = np.concatenate([motion_h.reshape(L,-1),motion_rot],1)
-                # motion_h = motion_h.reshape(L,-1)
-
-                # if motion_h.shape[0]==motion_bps.shape[0]:
-                #     motion=np.concatenate([motion_h[:,:],motion_bps],axis=1)
-                # else:
-                #     motion=np.concatenate([motion_h[:-1,:],motion_bps],axis=1)
-                # motion = motion[:min(300,motion.shape[0]),]
-                
-                
-                # Previously
-                #############
-                
-                # motion_h = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "joints.npy"))
-                # if motion_h.shape[0]>400:
-                #     continue
+             
                 motion_bps = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "bps_time.npy"))
 
-                # smotion_rot = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "rot6d_new2.npy"))
-                # print(motion_rot.shape,'QQ')
-                # #motion=motion_h[:,:77*3]
-                # if motion_h.shape[1]!=52:
-                #     motion_h = motion_h[:,:52]
-                # L = motion_h.shape[0]
-                # # motion_h = np.concatenate([motion_h.reshape(L,-1),motion_rot],1)
-                # motion_h = motion_h.reshape(L,-1)
-
-                # if motion_h.shape[0]==motion_bps.shape[0]:
-                #     motion=np.concatenate([motion_h[:,:],motion_bps],axis=1)
-                # else:
-                #     motion=np.concatenate([motion_h[:-1,:],motion_bps],axis=1)
-                # motion = motion[:min(300,motion.shape[0]),]
-                
-                MP='/projects/bbsg/ziyin/data_npz'
+                MP=''
                 if DataSet_name in ['omomo','behave','intercap']:
                     DataSet_name_used = DataSet_name+'_correct'
                 else:
@@ -2081,7 +1973,6 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
                 
                 motion_o = motion_full[:,52*3+52*6+3+4:52*3+52*6+3+9+4].reshape(motion_h.shape[0],-1)
                 
-                # dist = np.exp(-5*DATA_O['dist'][:,idxx])
                 L1 = motion_h.shape[0]
                 L2 = motion_bps.shape[0]
                 ml= min(L1,L2)
@@ -2089,23 +1980,6 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
                 
                 motion = motion[:min(300,motion.shape[0]),]
                 
-                ## MOTION_H
-                #print(motion.shape)
-
-
-                # if input_format == 'root_position':
-                #     motion = motion[..., :4+(njoints-1)*3]
-                # elif input_format == 'root_position_vel':
-                #     motion = np.concatenate((motion[..., :4+(njoints - 1) * 3], motion[..., 4+(njoints - 1) * 9: 4+(njoints - 1) * 9 + njoints*3]), axis=-1)
-                # elif input_format == 'root_position_rot6d':
-                #     motion = np.concatenate((motion[..., :4+(njoints - 1) * 3], motion[..., 4+(njoints - 1) * 3: 4+(njoints - 1) * 9]), axis=-1)
-                # elif input_format == 'root_rot6d':
-                #     motion = np.concatenate((motion[..., :4], motion[..., 4+(njoints - 1) * 3: 4+(njoints - 1) * 9]), axis=-1)
-                # elif input_format == 'vector_263':
-                #     pass
-                # else:
-                #     print('NotImplementedError')
-                #     raise NotImplementedError
 
                 if (len(motion)) < self.min_motion_length or (len(motion) >
                                                                 300):
@@ -2113,7 +1987,7 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
                     continue
                 text_data = []
                 flag = False
-                #pjoin(motion_dir, DataSet_name,'sequences',id_name,  "text.txt")
+
                 with cs.open(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "text.txt")) as f:
                     for line in f.readlines():
                         text_dict = {}
@@ -2130,7 +2004,6 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
 
                         text_dict["caption"] = caption
                         text_dict['sent_len']=len(tokens)
-                        #text_dict["tokens"] = tokens
                         if f_tag == 0.0 and to_tag == 0.0:
                             flag = True
                             text_data.append(text_dict)
@@ -2173,14 +2046,11 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
                     }
                     new_name_list.append(name)
                     length_list.append(len(motion))
-                    #print(name,'NEW_NAME')
-                    # print(count)
+                
                     count += 1
-                    # print(name)
             except Exception as e:
                 print(e)
                 
-                # import pdb; pdb.set_trace()
                 miss_count += 1
                 pass
 
@@ -2202,12 +2072,9 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
         self.nfeats = motion.shape[1]
         self.name_list = name_list
         self.reset_max_len(self.max_length)
-        # train 24546
-        # test 4648
-        print(f'Split datapart:{split_datapart}',f'Tiny:{tiny}',len(name_list))
-        # print('train len', len(data_dict))
-        # print('test len', len(data_dict))
 
+        print(f'Split datapart:{split_datapart}',f'Tiny:{tiny}',len(name_list))
+   
 
 
     def reset_max_len(self, length):
@@ -2231,33 +2098,11 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
         motion, m_length, text_list = data["motion"], data["length"], data[
             "text"]
 
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption=text_data["caption"]
         sent_len=text_data['sent_len']
-        #caption, tokens = text_data["caption"], text_data["tokens"]
-
-        # if len(tokens) < self.max_text_len:
-        #     # pad with "unk"
-        #     tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
-        #     sent_len = len(tokens)
-        #     tokens = tokens + ["unk/OTHER"
-        #                        ] * (self.max_text_len + 2 - sent_len)
-        # else:
-        #     # crop
-        #     tokens = tokens[:self.max_text_len]
-        #     tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
-        #     sent_len = len(tokens)
-        # pos_one_hots = []
-        # word_embeddings = []
-        # for token in tokens:
-        #     word_emb, pos_oh = self.w_vectorizer[token]
-        #     pos_one_hots.append(pos_oh[None, :])
-        #     word_embeddings.append(word_emb[None, :])
-        # pos_one_hots = np.concatenate(pos_one_hots, axis=0)
-        # word_embeddings = np.concatenate(word_embeddings, axis=0)
-
-        # Crop the motions in to times of 4, and introduce small variations
+      
+   
         if self.unit_length < 10:
             coin2 = np.random.choice(["single", "single", "double"])
         else:
@@ -2272,7 +2117,6 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
         "Z Normalization"
         motion = (motion - self.mean) / self.std
 
-        # debug check nan
         if np.any(np.isnan(motion)):
             raise ValueError("nan in motion")
 
@@ -2283,7 +2127,6 @@ class Text2MotionDatasetV3_old_wolmdb(data.Dataset):
             m_length,
             retrieval_name
         )
-        # return caption, motion, m_length
 
 
 class Text2MotionDatasetV3_o(data.Dataset):
@@ -2310,7 +2153,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
         self.max_length = 20
         self.pointer = 0
         self.max_motion_length = max_motion_length
-        # min_motion_len = 40 if dataset_name =='t2m' else 24
 
         self.min_motion_length = min_motion_length
         self.max_text_len = max_text_len
@@ -2326,18 +2168,9 @@ class Text2MotionDatasetV3_o(data.Dataset):
                 names_text_list=f.readlines()
             id_list_part=[['/scratch/bcnt/sirui/dongting/data',DataSet,e.strip()] for e in names_text_list]
             id_list+=id_list_part
-        # if split_datapart in ['train']:
-        #     for DataSet in ["behave" , "grab" , "imhd" , "intercap" , "neuraldome" ,"omomo"]:
-        #         txt_name=os.path.join(split_root,DataSet+'_'+split_datapart+'_aug.txt')
-        #         with open(txt_name,'r') as f:
-        #             names_text_list=f.readlines()
-        #         id_list_part=[['/scratch/bcnt/sirui/dongting/augment_data_new_version/aug_data',DataSet,e.strip()] for e in names_text_list]
-        #         id_list+=id_list_part
+      
         print(len(id_list),'Amount of sequences')
 
-        # with cs.open(split_file, "r") as f:
-        #     for line in f.readlines():
-        #         id_list.append(line.strip())
         self.id_list = id_list
 
         if tiny or debug:
@@ -2369,51 +2202,11 @@ class Text2MotionDatasetV3_o(data.Dataset):
             if count > maxdata:
                 break
             try:
-                ## PREVIOUS BPS
-                # motion_h = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "joints.npy"))
-                # if motion_h.shape[0]>400:
-                #     continue
-                # motion_bps = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "bps_time.npy"))
-
-                # motion_rot = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "rot6d_new2.npy"))
-                # #motion=motion_h[:,:77*3]
-                # if motion_h.shape[1]!=52:
-                #     motion_h = motion_h[:,:52]
-                # L = motion_h.shape[0]
-                # # motion_h = np.concatenate([motion_h.reshape(L,-1),motion_rot],1)
-                # motion_h = motion_h.reshape(L,-1)
-
-                # if motion_h.shape[0]==motion_bps.shape[0]:
-                #     motion=np.concatenate([motion_h[:,:],motion_bps],axis=1)
-                # else:
-                #     motion=np.concatenate([motion_h[:-1,:],motion_bps],axis=1)
-                # motion = motion[:min(300,motion.shape[0]),]
-                
-                
-                # Previously
-                #############
-                
-                # motion_h = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "joints.npy"))
-                # if motion_h.shape[0]>400:
-                #     continue
+             
                 motion_bps = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "bps_time.npy"))
 
-                # smotion_rot = np.load(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "rot6d_new2.npy"))
-                # print(motion_rot.shape,'QQ')
-                # #motion=motion_h[:,:77*3]
-                # if motion_h.shape[1]!=52:
-                #     motion_h = motion_h[:,:52]
-                # L = motion_h.shape[0]
-                # # motion_h = np.concatenate([motion_h.reshape(L,-1),motion_rot],1)
-                # motion_h = motion_h.reshape(L,-1)
-
-                # if motion_h.shape[0]==motion_bps.shape[0]:
-                #     motion=np.concatenate([motion_h[:,:],motion_bps],axis=1)
-                # else:
-                #     motion=np.concatenate([motion_h[:-1,:],motion_bps],axis=1)
-                # motion = motion[:min(300,motion.shape[0]),]
                 
-                MP='/projects/bbsg/ziyin/data_npz'
+                MP=''
                 if DataSet_name in ['omomo','behave','intercap']:
                     DataSet_name_used = DataSet_name+'_correct'
                 else:
@@ -2430,7 +2223,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
                 
                 motion_o = motion_full[:,52*3+52*6+3+4:52*3+52*6+3+9+4].reshape(motion_h.shape[0],-1)
                 
-                # dist = np.exp(-5*DATA_O['dist'][:,idxx])
                 L1 = motion_h.shape[0]
                 L2 = motion_bps.shape[0]
                 ml= min(L1,L2)
@@ -2438,23 +2230,7 @@ class Text2MotionDatasetV3_o(data.Dataset):
                 
                 motion = motion[:min(300,motion.shape[0]),]
                 
-                ## MOTION_H
-                #print(motion.shape)
-
-
-                # if input_format == 'root_position':
-                #     motion = motion[..., :4+(njoints-1)*3]
-                # elif input_format == 'root_position_vel':
-                #     motion = np.concatenate((motion[..., :4+(njoints - 1) * 3], motion[..., 4+(njoints - 1) * 9: 4+(njoints - 1) * 9 + njoints*3]), axis=-1)
-                # elif input_format == 'root_position_rot6d':
-                #     motion = np.concatenate((motion[..., :4+(njoints - 1) * 3], motion[..., 4+(njoints - 1) * 3: 4+(njoints - 1) * 9]), axis=-1)
-                # elif input_format == 'root_rot6d':
-                #     motion = np.concatenate((motion[..., :4], motion[..., 4+(njoints - 1) * 3: 4+(njoints - 1) * 9]), axis=-1)
-                # elif input_format == 'vector_263':
-                #     pass
-                # else:
-                #     print('NotImplementedError')
-                #     raise NotImplementedError
+              
 
                 if (len(motion)) < self.min_motion_length or (len(motion) >
                                                                 300):
@@ -2462,7 +2238,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
                     continue
                 text_data = []
                 flag = False
-                #pjoin(motion_dir, DataSet_name,'sequences',id_name,  "text.txt")
                 with cs.open(pjoin(motion_dir, DataSet_name,'sequences_canonical',id_name,  "text.txt")) as f:
                     for line in f.readlines():
                         text_dict = {}
@@ -2479,7 +2254,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
 
                         text_dict["caption"] = caption
                         text_dict['sent_len']=len(tokens)
-                        #text_dict["tokens"] = tokens
                         if f_tag == 0.0 and to_tag == 0.0:
                             flag = True
                             text_data.append(text_dict)
@@ -2504,15 +2278,12 @@ class Text2MotionDatasetV3_o(data.Dataset):
                                     "length": len(n_motion),
                                     "text": [text_dict],
                                 }
-                                #print(new_name,name,'NEW_NAME')
                                 new_name_list.append(new_name)
                                 length_list.append(len(n_motion))
                             except:
-                                # None
                                 print(line_split)
                                 print(line_split[2], line_split[3], f_tag,
                                         to_tag, name)
-                                # break
 
                 if flag:
                     data_dict[name] = {
@@ -2522,14 +2293,11 @@ class Text2MotionDatasetV3_o(data.Dataset):
                     }
                     new_name_list.append(name)
                     length_list.append(len(motion))
-                    #print(name,'NEW_NAME')
-                    # print(count)
+                
                     count += 1
-                    # print(name)
             except Exception as e:
                 print(e)
                 
-                # import pdb; pdb.set_trace()
                 miss_count += 1
                 pass
 
@@ -2551,11 +2319,9 @@ class Text2MotionDatasetV3_o(data.Dataset):
         self.nfeats = motion.shape[1]
         self.name_list = name_list
         self.reset_max_len(self.max_length)
-        # train 24546
-        # test 4648
+
         print(f'Split datapart:{split_datapart}',f'Tiny:{tiny}',len(name_list))
-        # print('train len', len(data_dict))
-        # print('test len', len(data_dict))
+      
 
 
 
@@ -2582,33 +2348,10 @@ class Text2MotionDatasetV3_o(data.Dataset):
         motion, m_length, text_list = data["motion"], data["length"], data[
             "text"]
 
-        # Randomly select a caption
         text_data = random.choice(text_list)
         caption=text_data["caption"]
         sent_len=text_data['sent_len']
-        #caption, tokens = text_data["caption"], text_data["tokens"]
-
-        # if len(tokens) < self.max_text_len:
-        #     # pad with "unk"
-        #     tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
-        #     sent_len = len(tokens)
-        #     tokens = tokens + ["unk/OTHER"
-        #                        ] * (self.max_text_len + 2 - sent_len)
-        # else:
-        #     # crop
-        #     tokens = tokens[:self.max_text_len]
-        #     tokens = ["sos/OTHER"] + tokens + ["eos/OTHER"]
-        #     sent_len = len(tokens)
-        # pos_one_hots = []
-        # word_embeddings = []
-        # for token in tokens:
-        #     word_emb, pos_oh = self.w_vectorizer[token]
-        #     pos_one_hots.append(pos_oh[None, :])
-        #     word_embeddings.append(word_emb[None, :])
-        # pos_one_hots = np.concatenate(pos_one_hots, axis=0)
-        # word_embeddings = np.concatenate(word_embeddings, axis=0)
-
-        # Crop the motions in to times of 4, and introduce small variations
+    
         if self.unit_length < 10:
             coin2 = np.random.choice(["single", "single", "double"])
         else:
@@ -2623,7 +2366,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
         "Z Normalization"
         motion = (motion - self.mean) / self.std
 
-        # debug check nan
         if np.any(np.isnan(motion)):
             raise ValueError("nan in motion")
 
@@ -2634,7 +2376,6 @@ class Text2MotionDatasetV3_o(data.Dataset):
             m_length,
             retrieval_name
         )
-        # return caption, motion, m_length
 
 
 
@@ -2644,24 +2385,7 @@ class Text2MotionDatasetV3_o(data.Dataset):
 
 
 class Text2MotionDatasetV3_NPZ(Dataset):
-    """
-    LMDB 结构（推荐）：
-      - __keys__ : JSON(list[str])  所有样本名
-      - 对于每个样本 name：
-          name:motion        -> .npy (np.save)
-          name:other_array   -> .npy
-          name:text          -> JSON（list[str] 或 str）
-          name:length        -> JSON（int）
-          name:xxx           -> JSON（任意可 JSON 的对象）
-
-    参数：
-      lmdb_path: LMDB 路径
-      fields:    要读取的字段名元组（例如 ('motion','text','length')）
-      to_tensor: numpy 数组是否转成 torch.Tensor（JSON 数据保持 Python 原生）
-      dtype_map: 可选 dict，指定数组字段转 Tensor 的 dtype（如 {'motion': torch.float32}）
-      transform: 可选样本级变换函数
-    """
-    
+  
     def __init__(
         self,
         mean,
@@ -2681,16 +2405,11 @@ class Text2MotionDatasetV3_NPZ(Dataset):
         progress_bar=True,
         **kwargs,
     ):
-    
-    # def __init__(self, opt, split, lmdb_path, fields=('motion','left_feature','right_feature','interaction_feature'), mean=None, std=None,
-    #              to_tensor=True, dtype_map=None, cache_bytes=256*1024*1024):
-        # self.opt = opt
-        # self.fields = ('''left_annotation')
+   
         self.w_vectorizer = w_vectorizer
         self.max_length = 20
         self.pointer = 0
         self.max_motion_length = max_motion_length
-        # min_motion_len = 40 if dataset_name =='t2m' else 24
 
         self.min_motion_length = min_motion_length
         self.max_text_len = max_text_len
@@ -2699,47 +2418,35 @@ class Text2MotionDatasetV3_NPZ(Dataset):
         data_dict = {}
         id_list = []
 
-        # with cs.open(split_file, "r") as f:
-        #     for line in f.readlines():
-        #         id_list.append(line.strip())
         self.id_list = id_list
         self.split = split_datapart
         if tiny or debug:
-            self.lmdb_path = f'/projects/bcnt/ziyin/merged_bihand_data_92k_final/debug_can_pos_all_wotextfeat'
+            self.lmdb_path = f''
             progress_bar = False
             maxdata = 10 if tiny else 100
         else:
-            self.lmdb_path = f'/projects/bcnt/ziyin/merged_bihand_data_92k_final/{self.split}_can_pos_all_wotextfeat'
+            self.lmdb_path = f''
             maxdata = 1e10
-        
-        # self.split = split_datapart  # left,right,joint,split
-        # self.lmdb_path = lmdb_path
-        # self.fields = tuple(fields)
+     
         self.to_tensor = True
         self.dtype_map = None or {}
 
-        # 归一化参数预整形
-        # assert mean is not None and std is not None
         self.mean = torch.from_numpy(mean.reshape(2, 21, -1))
         self.std  = torch.from_numpy(std.reshape(2, 21, -1))
         
         self.nfeats = self.mean.reshape(-1).shape[0]
-        # self.mean =(mean.reshape(2, 21, -1))
-        # self.std  = (std.reshape(2, 21, -1))
-
-        # 先读出 keys（只开一次短事务，避免把 env 带进子进程）
+      
         env = lmdb.open(self.lmdb_path, readonly=True, lock=False, readahead=False)
         with env.begin() as txn:
             raw = txn.get(b'__keys__')
             if raw is None:
-                raise RuntimeError("LMDB缺少 __keys__，请在写入时保存样本名列表。")
+                raise RuntimeError("LMDB ERROR")
             self.keys = json.loads(raw.decode('utf-8'))
         env.close()
 
         self.env = None
         self.txn = None
 
-    # 让 DataLoader 的 worker 各自懒加载 env/txn
     def __getstate__(self):
         d = dict(self.__dict__)
         d['env'] = None
@@ -2760,20 +2467,18 @@ class Text2MotionDatasetV3_NPZ(Dataset):
             return value
         if isinstance(value, np.ndarray):
             t = torch.from_numpy(value)
-            # 可选：按字段名做 dtype 规范化
+
             if name in self.dtype_map:
                 t = t.to(self.dtype_map[name])
             elif t.dtype == torch.float64:
-                t = t.float()  # 默认把 float64 降到 float32
+                t = t.float()  
             return t
-        return value  # JSON 数据原样返回（list/str/int/float/dict）
+        return value 
 
     def __getitem__(self, idx):
         self._lazy_init()
         name = self.keys[idx]
 
-        # sample = {"name": name}
-        # for f in self.fields:
         f = 'motion'
         key = f"{name}:{f}".encode("utf-8")
         buf = self.txn.get(key)
@@ -2794,10 +2499,7 @@ class Text2MotionDatasetV3_NPZ(Dataset):
             i = np.random.randint(low=0, high=N)
             texts.append(feature[i])
         caption = f'Left: {texts[0]}; Right: {texts[1]}; Interaction: {texts[2]}'
-        # print(caption)
-            
-            # motion = (motion-self.mean)/self.std
-            
+     
         return (
             caption,
             77,
@@ -2830,16 +2532,11 @@ class Text2MotionDatasetV3(Dataset):
         progress_bar=True,
         **kwargs,
     ):
-    
-    # def __init__(self, opt, split, lmdb_path, fields=('motion','left_feature','right_feature','interaction_feature'), mean=None, std=None,
-    #              to_tensor=True, dtype_map=None, cache_bytes=256*1024*1024):
-        # self.opt = opt
-        # self.fields = ('''left_annotation')
+ 
         self.w_vectorizer = w_vectorizer
         self.max_length = 20
         self.pointer = 0
         self.max_motion_length = max_motion_length
-        # min_motion_len = 40 if dataset_name =='t2m' else 24
 
         self.min_motion_length = min_motion_length
         self.max_text_len = max_text_len
@@ -2848,9 +2545,6 @@ class Text2MotionDatasetV3(Dataset):
         data_dict = {}
         id_list = []
 
-        # with cs.open(split_file, "r") as f:
-        #     for line in f.readlines():
-        #         id_list.append(line.strip())
         self.id_list = id_list
         self.split = split_datapart
         if tiny or debug:
@@ -2860,21 +2554,16 @@ class Text2MotionDatasetV3(Dataset):
         else:
             self.lmdb_path = f'{motion_dir}/{self.split}_can_pos_all_wotextfeat.npz'
             maxdata = 1e10
-        
-        # self.split = split_datapart  # left,right,joint,split
-        # self.lmdb_path = lmdb_path
-        # self.fields = tuple(fields)
+     
         self.to_tensor = True
         self.dtype_map = None or {}
 
         
-        # assert mean is not None and std is not None
         self.mean = torch.from_numpy(mean.reshape(2, 21, -1))
         self.std  = torch.from_numpy(std.reshape(2, 21, -1))
         
         self.nfeats = self.mean.reshape(-1).shape[0]
-        # self.mean =(mean.reshape(2, 21, -1))
-        # self.std  = (std.reshape(2, 21, -1))
+     
 
     
         self.data = dict(np.load(self.lmdb_path,allow_pickle=True))
@@ -2894,7 +2583,7 @@ class Text2MotionDatasetV3(Dataset):
             return value
         if isinstance(value, np.ndarray):
             t = torch.from_numpy(value)
-            # 可选：按字段名做 dtype 规范化
+
             if name in self.dtype_map:
                 t = t.to(self.dtype_map[name])
             elif t.dtype == torch.float64:
@@ -2907,33 +2596,19 @@ class Text2MotionDatasetV3(Dataset):
         name = self.keys[idx]
         dct = self.data[name].item()
         motion = (dct['motion'])
-        # sample = {"name": name}
-        # for f in self.fields:
-        # f = 'motion'
-        # key = f"{name}:{f}".encode("utf-8")
-        # buf = self.txn.get(key)
-        # if buf is None:
-        #     raise KeyError(f"missing key: {name}:{f}")
-        # motion = torch.from_numpy(_load_value(bytes(buf)))
+     
         motion = (torch.from_numpy(motion)-self.mean)/self.std
         motion = motion.reshape(motion.shape[0],-1)
         
         texts =[]
         for f in ['left_annotation','right_annotation','interaction_annotation']:
-            # key = f"{name}:{f}".encode("utf-8")
-            # buf = self.txn.get(key)
-            # if buf is None:
-            #     raise KeyError(f"missing key: {name}:{f}")
-            # feature = (_load_value(bytes(buf)))
+         
             feature = dct[f]
             N =len(feature)
             i = np.random.randint(low=0, high=N)
             texts.append(feature[i])
         caption = f'<extra_id0> {texts[0]} <extra_id1> {texts[1]} <extra_id2> {texts[2]} <extra_id3>'
-        # print(caption)
-            
-            # motion = (motion-self.mean)/self.std
-            
+     
         return (
             caption,
             77,
@@ -2941,10 +2616,4 @@ class Text2MotionDatasetV3(Dataset):
             60,
             name
         )
-        # return motion,features[0],features[1],features[2],60 
-        
-            # sample[f] = self._maybe_to_tensor(f, val)
-
-        # if self.transform:
-        #     sample = self.transform(sample)
-        # return sample
+   

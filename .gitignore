@@ -24,3 +24,5 @@ evaluation/evaluation_results.json
 evaluation/embeddings.npz
 diffusion/exps/*.DS_Store
 .DS_Store
+simulation/custom_mano/
+simulation/physhoi/
