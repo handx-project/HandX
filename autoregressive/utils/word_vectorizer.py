@@ -80,20 +80,3 @@ class WordVectorizer(object):
         return word_vec, pos_vec
 
 
-class WordVectorizerV2(WordVectorizer):
-    def __init__(self, meta_root, prefix):
-        super(WordVectorizerV2, self).__init__(meta_root, prefix)
-        self.idx2word = {self.word2idx[w]: w for w in self.word2idx}
-
-    def __getitem__(self, item):
-        word_vec, pose_vec = super(WordVectorizerV2, self).__getitem__(item)
-        word, pos = item.split('/')
-        if word in self.word2vec:
-            return word_vec, pose_vec, self.word2idx[word]
-        else:
-            return word_vec, pose_vec, self.word2idx['unk']
-
-    def itos(self, idx):
-        if idx == len(self.idx2word):
-            return "pad"
-        return self.idx2word[idx]

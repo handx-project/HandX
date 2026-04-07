@@ -10,9 +10,7 @@
 #SBATCH --mem=60g
 #SBATCH --job-name=generate_for_eval
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$PROJECT_DIR"
+cd /work/hdd/bbsg/yzhang62/HANDX/autoregressive
 
 export WANDB_MODE=disabled
 

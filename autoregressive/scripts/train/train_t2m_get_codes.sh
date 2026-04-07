@@ -1,18 +1,5 @@
-#!/bin/bash
-#SBATCH --account=bbsg-delta-gpu
-#SBATCH --time=01:00:00
-#SBATCH --partition=gpuA40x4,gpuA100x4,gpuA100x8
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
-#SBATCH --tasks=1
-#SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=60g
-#SBATCH --job-name=get_code
+conda activate HandX
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$PROJECT_DIR"
 accelerate launch --num_processes 1 train_t2m_get_codes.py \
 --exp-name get_codes \
 --batch-size 16 \
