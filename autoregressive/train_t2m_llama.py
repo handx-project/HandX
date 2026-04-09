@@ -13,7 +13,7 @@ from models.lit_llama.model_hf import LLaMAHF, LLaMAHFConfig
 from transformers import T5EncoderModel, T5Tokenizer, T5TokenizerFast
 from accelerate import Accelerator
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
-from dataset import dataset_TM_train, dataset_TM_train_motionmillion
+from dataset import dataset_TM_train_motionmillion
 from accelerate.utils import TorchDynamoPlugin
 def build_motion_tokens_with_text_offset(
     raw_m_tokens,

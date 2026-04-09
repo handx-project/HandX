@@ -1,17 +1,8 @@
-import numpy as np 
 import torch
 import torch.optim as optim
 import logging
-import os 
-import sys 
-
-def getCi(accLog):
-
-    mean = np.mean(accLog)
-    std = np.std(accLog)
-    ci95 = 1.96*std/np.sqrt(len(accLog))
-
-    return mean, ci95
+import os
+import sys
 
 def get_logger(out_dir):
     logger = logging.getLogger('Exp')
@@ -50,17 +41,3 @@ def initial_optim(decay_option, lr, weight_decay, net, optimizer, eps) :
                     {'params': list(decay), 'weight_decay' : weight_decay}], lr=lr, eps=eps)
         
     return optimizer
-
-
-def get_motion_with_trans(motion, velocity) : 
-    '''
-    motion : torch.tensor, shape (batch_size, T, 72), with the global translation = 0
-    velocity : torch.tensor, shape (batch_size, T, 3), contain the information of velocity = 0
-    
-    '''
-    trans = torch.cumsum(velocity, dim=1)
-    trans = trans - trans[:, :1] ## the first root is initialized at 0 (just for visualization)
-    trans = trans.repeat((1, 1, 21))
-    motion_with_trans = motion + trans
-    return motion_with_trans
-    

@@ -1,18 +1,4 @@
-#!/bin/bash
-#SBATCH --account=bbsg-delta-gpu
-#SBATCH --time=24:00:00
-#SBATCH --partition=gpuA40x4,gpuA100x4,gpuA100x8
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
-#SBATCH --tasks=1
-#SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=60g
-#SBATCH --job-name=train_t2m
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$PROJECT_DIR"
+conda activate HandX
 
 export WANDB_MODE=disabled
 export NCCL_TIMEOUT=1200

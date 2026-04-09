@@ -36,12 +36,16 @@
   <img src="assets/teaser.png" width="100%">
 </p>
 
+
 ## Demo
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/52a9056f-4067-47d6-860d-62bf7e6c2f43" autoplay loop muted playsinline width="100%"></video>
 </p>
 
+## News
+- [2026-04-09] Release simulation data replay with IsaacGym and auto-annotation code.
+- [2026-03-31] Initial release of diffusion, autoregressive code and evaluation pipeline.
 
 ## Environment Setup
 
@@ -257,6 +261,51 @@ To write to a custom directory, use `--output_dir`:
 python convert_to_autoregressive.py --output_dir /path/to/output
 ```
 
+## Annotation
+
+We provide a script to generate text annotations for a bimanual hand motion sequence using an LLM. Set your API key in `diffusion/src/constant.py` before running.
+
+<details>
+  <summary>Usage</summary>
+
+The input `.npy` file should have shape `(T, 2, 21, 3)` — the same unified data format used throughout this repository.
+
+Annotate a full sequence:
+
+```bash
+python diffusion/src/annotate_single.py \
+    --npy /path/to/motion.npy \
+    --output annotation.json
+```
+
+Annotate a specific frame range:
+
+```bash
+python diffusion/src/annotate_single.py \
+    --npy /path/to/motion.npy \
+    --output annotation.json \
+    --frame_start 0 --frame_end 60
+```
+
+The output JSON contains the sequence ID, frame range, and 5 annotation variants. Each variant describes the left hand, right hand, and their interaction:
+
+```json
+{
+    "seq_id": "motion",
+    "frame_start": 0,
+    "frame_end": 60,
+    "annotation": [
+        {
+            "left": "...",
+            "right": "...",
+            "two_hands_relation": "..."
+        },
+        ...
+    ]
+}
+```
+</details>
+
 ## Diffusion
 
 All training and evaluation commands below should be run from the `diffusion/` directory:
@@ -466,6 +515,80 @@ python run_evaluation.py \
 
 Results are saved as `evaluation_results.json` in the current directory.
 </details>
+
+## Simulation
+
+We provide code to import generated bimanual hand sequences into [IsaacGym](https://developer.nvidia.com/isaac-gym) for physics-based visualization. The simulation code is located in the `simulation/` directory.
+
+### Preparing Input Data
+
+<details>
+  <summary>Extracting sequences from HandX dataset</summary>
+
+The simulation pipeline takes `.pkl` files containing MANO parameters as input. These `.pkl` files can be extracted from the HandX dataset (`data/handx/train_mano.npz` or `data/handx/test_mano.npz`):
+
+```bash
+cd simulation
+
+# Extract specific indices
+python npz_to_pkl.py --npz ../data/handx/test_mano.npz --indices 0 5 10 --output_dir ./pkl_out
+
+# Randomly sample n sequences
+python npz_to_pkl.py --npz ../data/handx/train_mano.npz --random 20 --output_dir ./pkl_out
+```
+</details>
+
+### Environment Setup
+
+The simulation requires IsaacGym and its dependencies. Please refer to [InterMimic](https://github.com/Sirui-Xu/InterMimic) for environment setup instructions.
+
+Before running any simulation scripts, set the `ISAACGYM_PATH` environment variable to your IsaacGym installation directory:
+
+```bash
+export ISAACGYM_PATH=/path/to/isaacgym
+```
+
+### Converting Generated Sequences to IsaacGym Format
+
+Once you have generated MANO parameter sequences (`.pkl` files), convert them to the `.pt` format required by IsaacGym:
+
+```bash
+cd simulation
+python mano_to_pt.py \
+    --input /path/to/pkl/files \
+    --output custom_mano/ \
+    --z_offset 1.0
+```
+
+### Replaying a Single Sequence
+
+```bash
+cd simulation
+bash scripts/data_replay_grab_hand.sh custom_mano/your_sequence.pt
+```
+
+The output video will be saved as `hand_replay_your_sequence.mp4`.
+
+### Grid Visualization (N×M sequences simultaneously)
+
+To visualize multiple sequences in a grid layout:
+
+```bash
+cd simulation
+bash scripts/data_replay_grab_grid.sh [N] [M] [spacing] [seed] [motion_dir]
+
+# Example: 10x10 grid with spacing 0.25, seed 42
+bash scripts/data_replay_grab_grid.sh 10 10 0.25 42 custom_mano
+```
+
+To concatenate multiple runs with different seeds into a longer video:
+
+```bash
+bash scripts/data_replay_grab_grid_multi.sh [N] [M] [spacing] [motion_dir] [seed1] [seed2] ...
+
+# Example
+bash scripts/data_replay_grab_grid_multi.sh 10 10 0.25 custom_mano 42 123 456
+```
 
 ## Citation
 

@@ -222,7 +222,10 @@ def main():
     fixed_len = 60
 
     def joints_to_168(joints, target_len=60):
-        """Convert (T, 2, 21, 3) to (target_len, 168) with zero-padding."""
+        """Convert (T, 42, 3) or (T, 2, 21, 3) to (target_len, 168) with zero-padding."""
+        if joints.ndim == 3:
+            # (T, 42, 3) -> (T, 2, 21, 3)
+            joints = joints.reshape(joints.shape[0], 2, 21, 3)
         T = joints.shape[0]
         if T >= target_len:
             joints = joints[:target_len]

@@ -1,6 +1,6 @@
 import torch.nn as nn
 from models.encdec import Encoder, Decoder
-from models.quantize_cnn import QuantizeEMAReset, Quantizer, QuantizeEMA, QuantizeReset
+from models.quantize_cnn import QuantizeEMAReset, QuantizeEMA, QuantizeReset
 from models.LFQ import LFQ
 from models.FSQ import FSQ
 

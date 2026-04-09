@@ -1,19 +1,4 @@
-#!/bin/bash
-#SBATCH --account=bbsg-delta-gpu
-#SBATCH --time=04:00:00
-#SBATCH --partition=gpuA40x4,gpuA100x4,gpuA100x8
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
-#SBATCH --tasks=1
-#SBATCH --tasks-per-node=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=60g
-#SBATCH --job-name=generate_for_eval
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$PROJECT_DIR"
-
+conda activate HandX
 export WANDB_MODE=disabled
 
 python generate_for_eval.py \
@@ -33,5 +18,5 @@ python generate_for_eval.py \
 --use_patcher \
 --patch_size 1 \
 --patch_method haar \
---num-samples 2048 \
+--num-samples 4 \
 --out-dir results/eval_output

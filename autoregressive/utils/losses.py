@@ -292,33 +292,6 @@ class Loss_witer(nn.Module):
             return self.Loss(self.calc_bone_lengths(local_pos), self.calc_bone_lengths(local_pos_gt))
             
     
-    def forward_contact_between(self,pred_motion_unnorm, gt_motion_unnorm):
-        p1_gt = gt_motion_unnorm[:,:,0].reshape(-1,21,3)
-        p2_gt = gt_motion_unnorm[:,:,1].reshape(-1,21,3)
-        bps_enc = self.bps.encode(p1_gt,
-                     feature_type=['dists','deltas'],
-                     x_features=None,
-                     custom_basis=p2_gt)
-        ids = bps_enc['ids']
-        delta_gt = bps_enc['deltas']
-        dists_gt = bps_enc['dists']
-        weight = torch.exp(-10*dists_gt)
-        
-        p1_pred = pred_motion_unnorm[:,:,0].reshape(-1,21,3)
-        p2_pred = pred_motion_unnorm[:,:,1].reshape(-1,21,3)
-        
-        
-        index_expanded = ids.unsqueeze(-1).expand(-1, -1, 3)   # [T, 25, 3]
-
-        # Gather along the point dimension (dim=1)
-        p1_pred_selected_points = torch.gather(p1_pred, dim=1, index=index_expanded)
-        deltas_pred = p1_pred_selected_points-p2_pred
-        
-        d = weight*(delta_gt-deltas_pred).norm(dim=-1)
-        
-        return self.Loss(d,torch.zeros_like(d).float().to(d.device))
-        
-        
     def forward_vt(self, motion_pred, motion_gt): 
         loss = self.Loss(motion_pred[...,:3],  motion_gt[...,:3])
         return loss
@@ -366,17 +339,6 @@ class Loss_witer(nn.Module):
         loss = self.Loss(pred_acc, gt_acc)
         
         return loss
-    def forward_global_rot(self, motion_pred, motion_gt):
-        pred_rot = motion_pred[...,6:18]
-        gt_rot = motion_gt[...,6:18]
-        loss = self.Loss(pred_rot, gt_rot)
-        return loss
-        
-    
-    
-    # def forward_root(self, motion_pred, motion_gt) : 
-    #     loss = self.Loss(motion_pred[..., :8], motion_gt[..., :8])
-    #     return loss
     
       # print(fuck)3+3+2*16*6+2*20*3+2*20*3
         # m2 = torch.cat([vel_A.reshape(60,-1),relative_B_pos.reshape(60,-1),rot6d.reshape(60,-1),local.reshape(60,-1),veloicty.reshape(60,-1)],-1)
