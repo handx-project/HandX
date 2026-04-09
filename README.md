@@ -36,9 +36,6 @@
   <img src="assets/teaser.png" width="100%">
 </p>
 
-## News
-- [2026-03-31] Initial release of diffusion, autoregressive code and evaluation pipeline.
-- [2026-04-09] Release simulation data replay with IsaacGym and auto-annotation code.
 
 ## Demo
 
@@ -46,6 +43,9 @@
   <video src="https://github.com/user-attachments/assets/52a9056f-4067-47d6-860d-62bf7e6c2f43" autoplay loop muted playsinline width="100%"></video>
 </p>
 
+## News
+- [2026-03-31] Initial release of diffusion, autoregressive code and evaluation pipeline.
+- [2026-04-09] Release simulation data replay with IsaacGym and auto-annotation code.
 
 ## Environment Setup
 
