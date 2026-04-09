@@ -44,8 +44,8 @@
 </p>
 
 ## News
-- [2026-03-31] Initial release of diffusion, autoregressive code and evaluation pipeline.
 - [2026-04-09] Release simulation data replay with IsaacGym and auto-annotation code.
+- [2026-03-31] Initial release of diffusion, autoregressive code and evaluation pipeline.
 
 ## Environment Setup
 
