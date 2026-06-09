@@ -100,6 +100,8 @@ Download the HandX base data archive from this [link](https://drive.google.com/f
 This archive contains HandX original data together with redistributed data from GigaHands, HOT3D, and HoloAssist. It **does not** include ARCTIC or H2O, which are not redistributed by HandX and must be obtained separately due to their redistribution policies.
 HandX data are stored in merged files, with `source_metadata.json` mapping each entry key to its source dataset. Please review the root [`LICENSE`](LICENSE), [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), and applicable third-party license files under [`licenses/`](licenses/) before using or redistributing HandX data.
 
+The HandX base data archive is also available on [Hugging Face](https://huggingface.co/datasets/alexzhang598/HandX).
+
 Extract the archive and place the included files under `data/handx/`:
 
 ```
