@@ -24,12 +24,16 @@
 </p>
 
 <p align="center">
-  <a href='https://arxiv.org/abs/2603.28766'>
-    <img src='https://img.shields.io/badge/Arxiv-2603.28766-A42C25?style=flat&logo=arXiv&logoColor=A42C25'></a>
-  <a href='https://arxiv.org/pdf/2603.28766.pdf'>
-    <img src='https://img.shields.io/badge/Paper-PDF-yellow?style=flat&logo=arXiv&logoColor=yellow'></a>
-  <a href='https://handx-project.github.io'>
-    <img src='https://img.shields.io/badge/Project-Page-green?style=flat&logo=Google%20chrome&logoColor=green'></a>
+  <a href="https://arxiv.org/abs/2603.28766">
+    <img src="https://img.shields.io/badge/Arxiv-2603.28766-A42C25?style=flat&logo=arXiv&logoColor=A42C25"></a>
+  <a href="https://arxiv.org/pdf/2603.28766.pdf">
+    <img src="https://img.shields.io/badge/Paper-PDF-yellow?style=flat&logo=arXiv&logoColor=yellow"></a>
+  <a href="https://handx-project.github.io">
+    <img src="https://img.shields.io/badge/Project-Page-green?style=flat&logo=Google%20chrome&logoColor=green"></a>
+  <a href="https://huggingface.co/datasets/alexzhang598/HandX">
+    <img src="https://img.shields.io/badge/Data-HandX-blue?style=flat&logo=huggingface&logoColor=yellow"></a>
+  <a href="https://huggingface.co/spaces/xusirui/HandX-demo">
+    <img src="https://img.shields.io/badge/Demo-HandX-orange?style=flat&logo=huggingface&logoColor=yellow"></a>
 </p>
 
 <p align="center">
